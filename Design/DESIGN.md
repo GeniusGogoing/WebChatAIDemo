@@ -1,0 +1,52 @@
+# 技术栈
+- 核心框架
+    - Next.js(React)
+- 编程语言
+    - TypeScript
+- AI核心
+    - LangChain.js
+- 前端UI
+    - Shadcn/UI
+    - Tailwind CSS
+- 流式响应
+    - Vercel AI SDK
+- 数据库
+    - PostgreSQL + Prisma
+- 部署
+    - Vercel
+
+# 项目核心阶段
+- 第一阶段 MVP
+    - 核心功能
+        - 基础对话功能
+        - 响应式聊天界面
+        - API 路由实现
+        - AI 流式响应 (打字机效果)
+    - 主要学习目标
+        - 前端： React Hooks (useState, useEffect), JSX 布局
+        - 后端： Next.js API Routes, 处理 POST 请求
+        - 全栈： Vercel AI SDK, fetch API, Promise & async/await
+- 第二阶段 核心能力扩展
+    - 核心功能
+        - 记忆与上下文
+        - 保存对话历史
+        - 多轮对话上下文
+        - 用户系统
+        - 用户登录与注册
+    - 主要学习目标
+        - 数据库： PostgreSQL + Prisma Schema 设计, CRUD 操作
+        - AI 核心： LangChain.js 的 Memory 模块, 构建 Chain
+        - 安全： NextAuth.js, 会话 (Session) 管理, 密码哈希
+- 第三阶段 高级AI功能
+    - 核心功能
+        - 多模态输入
+        - 图片上传
+        - AI 识别图片内容
+        - Agent 与工具调用
+        - AI 联网搜索
+        - AI 调用自定义工具 (如计算器)
+    - 主要学习目标
+        - 文件处理： 前端文件上传, 后端处理 FormData
+        - 多模态 AI： 调用支持视觉的 LLM (如 GPT-4 Vision)
+        - Agent： LangChain.js Agents, Tools 定义与使用, ReAct 框架
+

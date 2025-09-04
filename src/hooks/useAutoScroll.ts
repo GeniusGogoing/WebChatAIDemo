@@ -42,7 +42,7 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}): UseAutoScroll
 
   const scrollRef = useRef<HTMLElement | null>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [, setIsUserScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // 滚动到底部

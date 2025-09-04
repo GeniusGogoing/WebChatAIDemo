@@ -13,8 +13,14 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
         rehypePlugins={[rehypeHighlight]}
         components={{
           // 自定义代码块样式
-          code(props: any) {
-            const { node, inline, className, children, ...restProps } = props;
+          code(props: unknown) {
+            const { node, inline, className, children, ...restProps } = props as {
+              node?: unknown;
+              inline?: boolean;
+              className?: string;
+              children?: React.ReactNode;
+              [key: string]: unknown;
+            };
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
               <pre className="bg-gray-800 text-gray-100 p-3 rounded-lg overflow-x-auto my-2 text-sm">
