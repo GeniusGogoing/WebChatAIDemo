@@ -1,102 +1,98 @@
-import Image from "next/image";
+"use client";
+
+import React, { useEffect } from "react";
+import { useChat } from "../hooks/useChat";
+import { useAutoScroll } from "../hooks/useAutoScroll";
+import MessageBubble from "../components/MessageBubble";
+import ChatInput from "../components/ChatInput";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { messages, input, isLoading, handleInputChange, handleSubmit, clearMessages } = useChat();
+  
+  // 使用自动滚动 Hook
+  const { scrollRef, shouldAutoScroll, scrollToBottom, resetAutoScroll } = useAutoScroll({
+    enabled: true,
+    behavior: 'smooth',
+    threshold: 20  // 降低阈值，用户只需要向上滚动 20px 就能暂停
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // 当消息更新时触发自动滚动（只有在应该自动滚动时才执行）
+  useEffect(() => {
+    if (messages.length > 0 && shouldAutoScroll) {
+      console.log('📝 消息更新，准备自动滚动', { 
+        messageCount: messages.length, 
+        shouldAutoScroll,
+        lastMessage: messages[messages.length - 1]?.content?.substring(0, 50) + '...'
+      });
+      // 使用防抖来减少频繁滚动和闪烁
+      const timeoutId = setTimeout(() => {
+        // 使用 requestAnimationFrame 确保 DOM 更新后再滚动 避免布局闪烁问题
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }, 30); // 30ms 防抖，减少闪烁
+
+      return () => clearTimeout(timeoutId);
+    } else if (messages.length > 0 && !shouldAutoScroll) {
+      console.log('⏸️ 消息更新但自动滚动已暂停', { 
+        messageCount: messages.length, 
+        shouldAutoScroll 
+      });
+    }
+    
+    return undefined; // 确保所有代码路径都有返回值
+  }, [messages, shouldAutoScroll, scrollToBottom]);
+
+  // 当用户发送新消息时重置自动滚动状态
+  const handleSubmitWithScroll = async (e: React.FormEvent) => {
+    resetAutoScroll();
+    await handleSubmit(e);
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* Header */}
+      <header className="p-4 border-b bg-white/80 backdrop-blur-sm shadow-sm">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl text-sky-600 font-semibold">Web AI ChatAgent</h1>
+          <button
+            onClick={clearMessages}
+            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+            disabled={messages.length === 0}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            清空对话
+          </button>
+        </div>
+      </header>
+
+      {/* Chat Container */}
+      <main ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-4">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-500">
+                <h2 className="text-xl font-medium mb-2">开始与 AI 对话</h2>
+                <p className="text-sm">输入你的问题，AI 会为你提供帮助</p>
+              </div>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <MessageBubble key={message.id} message={message} />
+            ))
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+      {/* Input Area */}
+      <footer className="p-4 border-t bg-white/80 backdrop-blur-sm shadow-sm">
+        <div>
+          <ChatInput
+            input={input}
+            isLoading={isLoading}
+            onInputChange={handleInputChange}
+            onSubmit={handleSubmitWithScroll}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+        </div>
       </footer>
     </div>
   );
