@@ -11,5 +11,26 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("web_ai_demo_DATABASE_URL")
+}
+
+// ==========================================
+// Our Application Models
+// ==========================================
+
+model ChatSession {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  role        String // "user" or "assistant"
+  content     String      @db.Text
+  createdAt   DateTime    @default(now())
+  
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id])
+  chatSessionId String
 }

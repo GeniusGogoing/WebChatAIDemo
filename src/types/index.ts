@@ -8,7 +8,8 @@ export interface Message {
 
 // API 请求/响应类型
 export interface ChatRequest {
-  messages: Message[];
+    chatId? : string | undefined;
+  messages: ApiMessage[];
 }
 
 export interface ChatResponse {
@@ -35,6 +36,7 @@ export interface MarkdownRendererProps {
 
 // Hook 返回类型
 export interface UseChatReturn {
+  chatId: string | undefined;
   messages: Message[];
   input: string;
   isLoading: boolean;

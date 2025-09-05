@@ -1,131 +1,136 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, AIMessage, BaseMessage } from '@langchain/core/messages';
 import { createTextStreamResponse } from 'ai';
-import type { ApiMessage, ChatRequest, ChatResponse } from '../../../types';
+import type { ApiMessage, ChatRequest } from '../../../types';
+import prisma from '../../../lib/prisma'; // 导入我们的 Prisma Client
 
-export const runtime = 'edge';
+// 移除 Edge Runtime 配置，因为 Prisma 需要 Node.js 运行时
+// export const runtime = 'edge';
 
 export async function POST(req: Request): Promise<Response> {
-    try {
-        const { messages }: ChatRequest = await req.json();
-        
-        // 检查环境变量
-        const apiKey = process.env.GOOGLE_API_KEY;
-        if (!apiKey) {
-            console.error('GOOGLE_API_KEY 环境变量未设置');
-            return new Response('GOOGLE_API_KEY 环境变量未设置', { status: 500 });
-        }
-        
-        console.log('API Key 存在:', apiKey ? '是' : '否');
-        console.log('收到消息数量:', messages?.length || 0);
-        
-        const model = new ChatGoogleGenerativeAI({
-            model : "gemini-2.0-flash",
-            apiKey : apiKey,
-            streaming : true,
-        });
-        
-        const langChainMessages: BaseMessage[] = messages.map(
-            (message: ApiMessage): BaseMessage => {
-                if (message.role === "user") {
-                    return new HumanMessage(message.content);
-                } else {
-                    return new AIMessage(message.content);
-                }
-            }
-        );
+  try {
+    const { messages, chatId: existingChatId }: ChatRequest = await req.json();
 
-        console.log('LangChain 消息转换完成，数量:', langChainMessages.length);
-        
-        const response = await model.invoke(langChainMessages);
-        console.log('模型响应类型:', typeof response.content);
-        
-        // 处理 MessageContent 类型
-        let content = '';
-        if (typeof response.content === 'string') {
-            content = response.content;
-        } else if (Array.isArray(response.content)) {
-            content = response.content.map(item => 
-                typeof item === 'string' ? item : JSON.stringify(item)
-            ).join('');
-        } else {
-            content = JSON.stringify(response.content);
-        }
-        
-        console.log('处理后的内容长度:', content.length);
-        
-        // 创建真正的流式响应，智能控制发送速度
-        const textStream = new ReadableStream({
-            start(controller) {
-                // 智能速度控制：根据数据量调整发送间隔
-                const chars = content.split('');
-                const totalChars = chars.length;
-                let index = 0;
-                
-                // 计算基础发送间隔（毫秒）
-                let baseDelay = 50; // 默认50ms
-                
-                // 根据内容长度动态调整速度
-                if (totalChars > 100) {
-                    baseDelay = 30; // 长文本加快
-                }
-                if (totalChars > 200) {
-                    baseDelay = 20; // 更长文本更快
-                }
-                if (totalChars > 500) {
-                    baseDelay = 10; // 超长文本最快
-                }
-                
-                console.log(`总字符数: ${totalChars}, 基础延迟: ${baseDelay}ms`);
-                
-                const sendNextChar = () => {
-                    if (index < chars.length) {
-                        // 直接发送文本字符
-                        const char = chars[index];
-                        controller.enqueue(char);
-                        index++;
-                        
-                        // 动态调整延迟：越接近结尾发送越快
-                        let currentDelay = baseDelay;
-                        const progress = index / totalChars;
-                        
-                        if (progress > 0.8) {
-                            currentDelay = Math.max(5, baseDelay * 0.5); // 最后20%加快
-                        } else if (progress > 0.5) {
-                            currentDelay = Math.max(10, baseDelay * 0.7); // 后半段稍快
-                        }
-                        
-                        // 添加随机性，让发送更自然
-                        const randomDelay = currentDelay + Math.random() * 10 - 5;
-                        const finalDelay = Math.max(5, randomDelay);
-                        
-                        setTimeout(sendNextChar, finalDelay);
-                    } else {
-                        controller.close();
-                    }
-                };
-                
-                sendNextChar();
-            }
-        });
-        
-        return createTextStreamResponse({ textStream });
-        
-    } catch (error: unknown) {
-        console.error('API 错误详情:', error);
-        
-        const errorResponse: ChatResponse = {
-            error: 'API 请求失败',
-            details: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined
-        };
-        
-        return new Response(
-            JSON.stringify(errorResponse), 
-            { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      return new Response('GOOGLE_API_KEY 环境变量未设置', { status: 500 });
     }
+
+    const userMessage = messages[messages.length - 1];
+    
+    // 检查用户消息是否存在
+    if (!userMessage) {
+      return new Response('没有找到用户消息', { status: 400 });
+    }
+    
+    let currentChatId = existingChatId;
+    let chatHistory: ApiMessage[] = [];
+
+    // 如果是新对话，创建 ChatSession 并保存第一条消息
+    if (!currentChatId) {
+      const newChat = await prisma.chatSession.create({
+        data: {
+          messages: {
+            create: {
+              role: userMessage.role,
+              content: userMessage.content,
+            },
+          },
+        },
+        include: {
+          messages: true, // 返回创建的消息
+        },
+      });
+      currentChatId = newChat.id;
+      chatHistory = newChat.messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+    } else {
+      // 如果是现有对话，保存新消息并加载历史记录
+      await prisma.message.create({
+        data: {
+          chatSessionId: currentChatId,
+          role: userMessage.role,
+          content: userMessage.content,
+        },
+      });
+      const allMessages = await prisma.message.findMany({
+        where: { chatSessionId: currentChatId },
+        orderBy: { createdAt: 'asc' },
+      });
+      chatHistory = allMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+    }
+
+    // 初始化模型
+    const model = new ChatGoogleGenerativeAI({
+      model: "gemini-2.0-flash",
+      apiKey: apiKey,
+      streaming: true,
+    });
+
+    const langChainMessages: BaseMessage[] = chatHistory.map((message) =>
+      message.role === "user"
+        ? new HumanMessage(message.content)
+        : new AIMessage(message.content)
+    );
+
+    // 调用模型并获取流
+    const stream = await model.stream(langChainMessages);
+    
+    let accumulatedContent = '';
+    
+    // 创建一个新的 ReadableStream 来处理 LangChain 的流
+    const transformedStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            const content = typeof chunk.content === 'string' ? chunk.content : '';
+            accumulatedContent += content;
+            controller.enqueue(content);
+          }
+          
+          // 对话结束后，将完整的 AI 回复保存到数据库
+          if (currentChatId) {
+            await prisma.message.create({
+              data: {
+                chatSessionId: currentChatId,
+                role: 'assistant',
+                content: accumulatedContent,
+              },
+            });
+          }
+          
+          controller.close();
+        } catch (error) {
+          console.error('Stream processing error:', error);
+          controller.error(error);
+        }
+      },
+    });
+    
+    // 使用 Vercel AI SDK 的 createTextStreamResponse 返回响应
+    return createTextStreamResponse({
+        textStream: transformedStream,
+        headers: {
+            'X-Chat-Id': currentChatId, // 在响应头中返回 chatId
+        },
+    });
+
+  } catch (error: unknown) {
+    console.error('API 错误详情:', error);
+    
+    // 提供更详细的错误信息用于调试
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    const errorStack = error instanceof Error ? error.stack : '';
+    
+    console.error('错误消息:', errorMessage);
+    console.error('错误堆栈:', errorStack);
+    
+    return new Response(JSON.stringify({ 
+      error: 'API 请求失败',
+      message: errorMessage,
+      stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
