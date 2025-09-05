@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { Message, UseChatReturn, ApiMessage, ChatRequest } from '../types';
 import { THINKING_CONTENT } from '../types';
 
@@ -6,83 +6,83 @@ export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatId, setChatId] = useState<string | undefined>(undefined); // 新增 chatId 状态
+  const [chatId, setChatId] = useState<string | undefined>(undefined);
 
-  // 触发自动滚动的函数（空实现，由父组件处理）
   const triggerAutoScroll = useCallback(() => {
     // 这个函数由父组件的自动滚动逻辑处理
   }, []);
+
+  // 获取历史记录
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/chat');
+        if (!response.ok) throw new Error('Failed to fetch history');
+        
+        const data = await response.json();
+        
+        if (data && data.messages) {
+          const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+            id: msg.id, role: msg.role, content: msg.content, timestamp: new Date(msg.createdAt),
+          }));
+          setMessages(loadedMessages);
+          setChatId(data.id);
+          triggerAutoScroll(); // 加载完历史记录后也触发一次滚动
+        }
+      } catch (error) {
+        console.error('获取历史记录失败:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [triggerAutoScroll]); // 依赖数组中加入 triggerAutoScroll
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
   }, []);
 
-  const clearMessages = useCallback(() => {
+  const clearMessages = useCallback(async () => {
     setMessages([]);
-    setChatId(undefined); // 清空对话时也清空 chatId
+    setChatId(undefined);
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-
+    const userMessage: Message = { id: crypto.randomUUID(), role: 'user', content: input.trim(), timestamp: new Date() };
+    
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
-
+    triggerAutoScroll(); // 3. 在发送用户消息后，触发滚动
 
     const assistantMessageId = crypto.randomUUID();
     setMessages(prev => [
       ...prev,
-      {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: THINKING_CONTENT,
-        timestamp: new Date(),
-      },
+      { id: assistantMessageId, role: 'assistant', content: THINKING_CONTENT, timestamp: new Date() },
     ]);
-
-    triggerAutoScroll();
+    triggerAutoScroll(); // 4. 在显示“思考中”后，触发滚动
 
     try {
-      const apiMessages: ApiMessage[] = newMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const apiMessages: ApiMessage[] = newMessages.map(msg => ({ role: msg.role, content: msg.content }));
+      const requestBody: ChatRequest = { messages: apiMessages, chatId: chatId };
 
-      const requestBody: ChatRequest = {
-        messages: apiMessages,
-        chatId: chatId, // 在请求体中带上 chatId
-      };
+      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      // 从响应头中获取新的 chatId
       const newChatId = response.headers.get('X-Chat-Id');
-      if (newChatId && newChatId !== chatId) {
-        setChatId(newChatId);
-      }
+      if (newChatId && newChatId !== chatId) setChatId(newChatId);
       
       if (!response.ok) {
-        throw new Error(`API 请求失败: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API 请求失败: ${response.status}`);
       }
       
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('无法读取响应流');
-      }
+      if (!reader) throw new Error('无法读取响应流');
       
       let accumulatedContent = '';
       const decoder = new TextDecoder('utf-8');
@@ -101,8 +101,7 @@ export function useChat(): UseChatReturn {
               : msg
           )
         );
-
-        triggerAutoScroll();
+        triggerAutoScroll(); // 5. 在流式响应的每一帧后，触发滚动
       }
     } catch (error: unknown) {
       console.error('聊天错误:', error);
@@ -113,20 +112,14 @@ export function useChat(): UseChatReturn {
             : msg
         )
       );
-      triggerAutoScroll();
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, chatId,triggerAutoScroll]);
+  }, [input, isLoading, messages, chatId, triggerAutoScroll]);
 
   return {
-    messages,
-    input,
-    isLoading,
-    chatId, // 导出 chatId
-    handleInputChange,
-    handleSubmit,
-    clearMessages,
-    triggerAutoScroll,
+    messages, input, isLoading, chatId,
+    handleInputChange, handleSubmit, clearMessages,
+    triggerAutoScroll, // 6. 确保 triggerAutoScroll 被导出
   };
 }

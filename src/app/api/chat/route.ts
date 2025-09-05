@@ -7,6 +7,50 @@ import prisma from '../../../lib/prisma'; // 导入我们的 Prisma Client
 // 移除 Edge Runtime 配置，因为 Prisma 需要 Node.js 运行时
 // export const runtime = 'edge';
 
+import { NextRequest, NextResponse } from 'next/server';
+// ... other imports
+
+// GET function to fetch chat history
+export async function GET(req: NextRequest) {
+  try {
+    const chatId = req.nextUrl.searchParams.get('chatId');
+
+    if (!chatId) {
+      // 如果没有 chatId，可以返回一个空数组或最新的一个会话
+      // 这里我们返回最新的会话
+      const latestChat = await prisma.chatSession.findFirst({
+        orderBy: { updatedAt: 'desc' },
+        include: { messages: { orderBy: { createdAt: 'asc' } } },
+      });
+
+      if (!latestChat) {
+        return NextResponse.json({ messages: [] });
+      }
+      return NextResponse.json(latestChat);
+    }
+
+    const chatSession = await prisma.chatSession.findUnique({
+      where: { id: chatId },
+      include: {
+        messages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!chatSession) {
+      return NextResponse.json({ error: 'Chat session not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(chatSession);
+  } catch (error) {
+    console.error('Failed to fetch chat history:', error);
+    return NextResponse.json({ error: 'Failed to fetch chat history' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request): Promise<Response> {
   try {
     const { messages, chatId: existingChatId }: ChatRequest = await req.json();
