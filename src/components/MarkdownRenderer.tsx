@@ -14,8 +14,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
         components={{
           // 自定义代码块样式
           code(props: unknown) {
-            const { node, inline, className, children, ...restProps } = props as {
-              node?: unknown;
+            const { inline, className, children, ...restProps } = props as {
               inline?: boolean;
               className?: string;
               children?: React.ReactNode;

@@ -65,16 +65,16 @@ export default function SessionsSidebar({ activeId, onSelect, onNewChat }: Sessi
     dragState.current.dragging = false;
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
-    window.removeEventListener('mousemove', onMouseMove as any);
-    window.removeEventListener('mouseup', stopDragging as any);
+    window.removeEventListener('mousemove', onMouseMove as EventListener);
+    window.removeEventListener('mouseup', stopDragging as EventListener);
   }, [onMouseMove]);
 
   const startDragging = useCallback((e: React.MouseEvent) => {
     dragState.current = { dragging: true, startX: e.clientX, startWidth: width };
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', onMouseMove as any);
-    window.addEventListener('mouseup', stopDragging as any);
+    window.addEventListener('mousemove', onMouseMove as EventListener);
+    window.addEventListener('mouseup', stopDragging as EventListener);
   }, [width, onMouseMove, stopDragging]);
 
   const handleDelete = async (id: string) => {

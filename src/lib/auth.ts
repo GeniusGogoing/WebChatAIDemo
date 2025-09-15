@@ -40,7 +40,7 @@ export async function readToken() {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret(), { issuer: JWT_ISSUER, audience: JWT_AUDIENCE });
-    return payload as any as { sub: string; email: string };
+    return payload as { sub: string; email: string };
   } catch {
     return null;
   }

@@ -24,8 +24,8 @@ export function useChat(): UseChatReturn {
         const data = await response.json();
         
         if (data && data.messages) {
-          const loadedMessages: Message[] = data.messages.map((msg: any) => ({
-            id: msg.id, role: msg.role, content: msg.content, timestamp: new Date(msg.createdAt),
+          const loadedMessages: Message[] = data.messages.map((msg: { id: string; role: string; content: string; createdAt: string }) => ({
+            id: msg.id, role: msg.role as 'user' | 'assistant', content: msg.content, timestamp: new Date(msg.createdAt),
           }));
           setMessages(loadedMessages);
           setChatId(data.id);
@@ -56,8 +56,8 @@ export function useChat(): UseChatReturn {
       if (!res.ok) throw new Error('加载会话失败');
       const data = await res.json();
       if (data && data.messages) {
-        const loadedMessages: Message[] = data.messages.map((msg: any) => ({
-          id: msg.id, role: msg.role, content: msg.content, timestamp: new Date(msg.createdAt),
+        const loadedMessages: Message[] = data.messages.map((msg: { id: string; role: string; content: string; createdAt: string }) => ({
+          id: msg.id, role: msg.role as 'user' | 'assistant', content: msg.content, timestamp: new Date(msg.createdAt),
         }));
         setMessages(loadedMessages);
         setChatId(data.id);

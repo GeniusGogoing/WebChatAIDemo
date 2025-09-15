@@ -215,9 +215,9 @@ export async function POST(req: Request): Promise<Response> {
           ]);
           const summaryText = typeof summaryResult.content === 'string'
             ? summaryResult.content
-            : Array.isArray((summaryResult as any).content)
-              ? (summaryResult as any).content.map((c: any) => c.text || '').join('')
-              : JSON.stringify((summaryResult as any).content);
+            : Array.isArray((summaryResult as { content: unknown[] }).content)
+              ? (summaryResult as { content: { text?: string }[] }).content.map((c) => c.text || '').join('')
+              : JSON.stringify((summaryResult as { content: unknown }).content);
 
           await prisma.chatSession.update({
             where: { id: currentChatId },

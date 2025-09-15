@@ -5,14 +5,14 @@ import { requireUser } from '@/lib/auth';
 export async function GET() {
   try {
     const user = await requireUser();
-    const where = user ? { userId: user.id } : { id: undefined as any }; // 未登录返回空
+    const where = user ? { userId: user.id } : { id: { in: [] } }; // 未登录返回空
     const sessions = await prisma.chatSession.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
       select: { id: true, title: true, updatedAt: true },
     });
     return NextResponse.json(sessions);
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch sessions' }, { status: 500 });
   }
 }
@@ -29,7 +29,7 @@ export async function DELETE(req: NextRequest) {
     if (user && chat.userId && chat.userId !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     await prisma.chatSession.delete({ where: { id } });
     return NextResponse.json({ ok: true });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
   }
 }
