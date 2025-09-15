@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import type { Message, UseChatReturn, ApiMessage, ChatRequest } from '../types';
 import { THINKING_CONTENT } from '../types';
 
+
 export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -47,6 +48,27 @@ export function useChat(): UseChatReturn {
     setMessages([]);
     setChatId(undefined);
   }, []);
+
+  const loadChat = useCallback(async (id: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/chat?chatId=${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error('加载会话失败');
+      const data = await res.json();
+      if (data && data.messages) {
+        const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+          id: msg.id, role: msg.role, content: msg.content, timestamp: new Date(msg.createdAt),
+        }));
+        setMessages(loadedMessages);
+        setChatId(data.id);
+        triggerAutoScroll();
+      }
+    } catch (e) {
+      console.error('加载会话失败:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [triggerAutoScroll]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,5 +143,6 @@ export function useChat(): UseChatReturn {
     messages, input, isLoading, chatId,
     handleInputChange, handleSubmit, clearMessages,
     triggerAutoScroll, // 6. 确保 triggerAutoScroll 被导出
+    loadChat,
   };
 }

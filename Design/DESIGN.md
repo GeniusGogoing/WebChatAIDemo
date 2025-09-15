@@ -1,19 +1,30 @@
 # 技术栈
 - 核心框架
-    - Next.js(React)
+    - Next.js 15.5.2 (React 19.1.0)
 - 编程语言
-    - TypeScript
+    - TypeScript 5
 - AI核心
-    - LangChain.js
+    - LangChain.js 0.3.32
+    - Google Gemini 2.0 Flash
+    - Google Gemini Embeddings
 - 前端UI
-    - Shadcn/UI
-    - Tailwind CSS
+    - Tailwind CSS v4
+    - 自定义组件系统
 - 流式响应
-    - Vercel AI SDK
+    - Vercel AI SDK 5.0.30
+    - 自定义流式处理
 - 数据库
-    - PostgreSQL + Prisma
+    - PostgreSQL + Prisma 6.15.0
+- 认证系统
+    - JWT (jose)
+    - bcryptjs 密码哈希
+- 工具集成
+    - Tavily 搜索 API
+    - 结构化输出 (Zod)
+    - RAG 知识库检索
 - 部署
-    - Vercel
+    - Vercel (推荐)
+    - 支持 Node.js 运行时
 
 # 项目核心阶段
 - 第一阶段 MVP
@@ -37,16 +48,35 @@
         - 数据库： PostgreSQL + Prisma Schema 设计, CRUD 操作
         - AI 核心： LangChain.js 的 Memory 模块, 构建 Chain
         - 安全： NextAuth.js, 会话 (Session) 管理, 密码哈希
-- 第三阶段 高级AI功能
+- 第三阶段 高级AI功能 ✅ 已完成
+    - 核心功能
+        - Agent 与工具调用 ✅
+        - AI 联网搜索 ✅
+        - AI 调用自定义工具 ✅
+        - RAG 知识库检索 ✅
+        - 结构化信息抽取 ✅
+        - 用户认证系统 ✅
+        - 多轮对话上下文管理 ✅
+    - 主要学习目标
+        - Agent： LangChain.js Agents, Tools 定义与使用, ReAct 框架 ✅
+        - 工具集成： Tavily 搜索, 时间查询, 文档检索, 结构化抽取 ✅
+        - 认证系统： JWT 令牌, 密码哈希, 会话管理 ✅
+        - RAG 系统： 文档分块, 向量化, 相似度搜索 ✅
+        - 数据库设计： 用户, 会话, 消息, 知识库模型 ✅
+
+- 第四阶段 扩展功能 (进行中)
     - 核心功能
         - 多模态输入
         - 图片上传
         - AI 识别图片内容
-        - Agent 与工具调用
-        - AI 联网搜索
-        - AI 调用自定义工具 (如计算器)
+        - 文件上传功能
+        - 对话导出功能
+        - 主题切换功能
+        - 移动端优化
+        - 对话分享功能
     - 主要学习目标
         - 文件处理： 前端文件上传, 后端处理 FormData
-        - 多模态 AI： 调用支持视觉的 LLM (如 GPT-4 Vision)
-        - Agent： LangChain.js Agents, Tools 定义与使用, ReAct 框架
+        - 多模态 AI： 调用支持视觉的 LLM
+        - 用户体验： 响应式设计, 主题系统, 分享功能
+        - 性能优化： 移动端适配, 加载优化
 

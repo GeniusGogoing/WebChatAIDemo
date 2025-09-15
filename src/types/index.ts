@@ -36,16 +36,18 @@ export interface MarkdownRendererProps {
 
 // Hook 返回类型
 export interface UseChatReturn {
-  chatId: string | undefined;
-  messages: Message[];
-  input: string;
-  isLoading: boolean;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleSubmit: (e: React.FormEvent) => Promise<void>;
-  clearMessages: () => void;
-  // 用于触发自动滚动的函数
-  triggerAutoScroll: () => void;
-}
+    chatId: string | undefined;
+    messages: Message[];
+    input: string;
+    isLoading: boolean;
+    handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleSubmit: (e: React.FormEvent) => Promise<void>;
+    clearMessages: () => void;
+    // 用于触发自动滚动的函数
+    triggerAutoScroll: () => void;
+    // 新增：加载指定会话
+    loadChat: (id: string) => Promise<void>;
+  }
 
 // API 消息类型（用于与后端通信）
 export interface ApiMessage {

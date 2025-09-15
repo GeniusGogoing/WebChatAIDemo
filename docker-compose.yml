@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Next.js 应用
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=huuPlGT2vfkcdgaOpROD7Ddl0dhsenOMEsXvnY+lRec=
+      - web_ai_demo_DATABASE_URL=postgresql://postgres:password@db:5432/webai_demo
+      - GOOGLE_API_KEY=AIzaSyA25iX0e1qzQYvV3kP8o_O_v7i473c3kFg
+      - TAVILY_API_KEY=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
+    depends_on:
+      - db
+    volumes:
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+
+  # PostgreSQL 数据库
+  db:
+    image: postgres:15-alpine
+    environment:
+      # - POSTGRES_DB=webai_demo
+      # - POSTGRES_USER=postgres
+      # - POSTGRES_PASSWORD=password
+      - POSTGRES_URL="postgres://d241458b48c3140667938f0614cb34e0bdf161cf6d56a7770dcf6d05f389abb8:sk_Q-8A9pY9qjQCj8glvgbR0@db.prisma.io:5432/postgres?sslmode=require"
+      - PRISMA_DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RfaWQiOjEsInNlY3VyZV9rZXkiOiJza19RLThBOXBZOXFqUUNqOGdsdmdiUjAiLCJhcGlfa2V5IjoiMDFLNEFCR005V1NFN05GWTRaQTBYNVZOWUQiLCJ0ZW5hbnRfaWQiOiJkMjQxNDU4YjQ4YzMxNDA2Njc5MzhmMDYxNGNiMzRlMGJkZjE2MWNmNmQ1NmE3NzcwZGNmNmQwNWYzODlhYmI4IiwiaW50ZXJuYWxfc2VjcmV0IjoiNTFlYTVmMjgtNDk2My00MDExLWE1ZGQtYTEzOTM2ZjNhZmY4In0.adfjUBOrF8L8fsfpv3TX7A2FQ7SedoqD58SgkHQ0OFI"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -22,15 +22,53 @@ model ChatSession {
   id        String    @id @default(cuid())
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  title     String?
+  summary   String?   @db.Text
   messages  Message[]
+  // 关联用户（可为空以兼容未登录场景）
+  user       User?      @relation(fields: [userId], references: [id])
+  userId     String?
 }
 
 model Message {
-  id          String      @id @default(cuid())
-  role        String // "user" or "assistant"
-  content     String      @db.Text
-  createdAt   DateTime    @default(now())
-  
-  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id])
+  id            String      @id @default(cuid())
+  role          String // "user" or "assistant"
+  content       String      @db.Text
+  createdAt     DateTime    @default(now())
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
   chatSessionId String
+}
+
+// 简易 RAG 知识库（演示用，embedding 以 JSON 字符串存储）
+model KnowledgeBase {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  chunks    KbChunk[]
+}
+
+model KbChunk {
+  id         String        @id @default(cuid())
+  createdAt  DateTime      @default(now())
+  kb         KnowledgeBase @relation(fields: [kbId], references: [id], onDelete: Cascade)
+  kbId       String
+  source     String
+  ord        Int
+  content    String        @db.Text
+  embedding  String        @db.Text // JSON.stringify(number[])
+
+  @@index([kbId])
+  @@index([kbId, source, ord])
+}
+
+// 用户模型
+model User {
+  id         String        @id @default(cuid())
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  email      String        @unique
+  name       String?
+  password   String        // bcrypt hash
+  sessions   ChatSession[]
 }
